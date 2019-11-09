@@ -24,10 +24,7 @@ import com.example.android.architecture.blueprints.todoapp.R
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository
 import com.google.common.truth.Truth.assertThat
-import com.nhaarman.mockitokotlin2.argumentCaptor
-import com.nhaarman.mockitokotlin2.atLeastOnce
 import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.assertj.core.api.Assumptions.assumeThat
 import org.junit.After
@@ -118,7 +115,7 @@ class TasksViewModelTestJUnitTheories {
 
     companion object {
 
-        val LOAD: Action = { loadTasks(forceUpdate = true) }
+        val LOAD: Action = { loadTasks(forceUpdate = false) }
         val FILTER_ALL: Action = { setFiltering(TasksFilterType.ALL_TASKS) }
         val FILTER_COMPLETE: Action = { setFiltering(TasksFilterType.COMPLETED_TASKS) }
         val FILTER_ACTIVE: Action = { setFiltering(TasksFilterType.ACTIVE_TASKS) }
@@ -130,7 +127,7 @@ class TasksViewModelTestJUnitTheories {
             listOf(FILTER_ALL, LOAD),
             listOf(FILTER_COMPLETE, LOAD),
             listOf(FILTER_ACTIVE, LOAD),
-            listOf(FILTER_COMPLETE, LOAD, FILTER_ALL),
+            listOf(FILTER_COMPLETE, LOAD, FILTER_ALL, LOAD),
             listOf(FILTER_ALL, LOAD, CLEAR_COMPLETED)
         )
     }
@@ -168,5 +165,28 @@ class TasksViewModelTestJUnitTheories {
         assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_active)
 
         assertThat(itemsObserver.observed().last().any { it.isCompleted }).isFalse()
+    }
+
+    @Theory
+    fun noCompletedItemsAfterClearComplete(actions: Actions) {
+        assumeThat(actions.last()).isSameAs(CLEAR_COMPLETED)
+
+        actions.forEach { it(tasksViewModel) }
+
+        assertThat(itemsObserver.observed().last().any { it.isCompleted }).isFalse()
+        assertThat(snackbarObserver.observed().map { it.peekContent() }.last()).isEqualTo(R.string.completed_tasks_cleared)
+    }
+
+    @Theory
+    fun snackbarMessageOnClearComplete(actions: Actions) {
+        assumeThat(actions.last()).isSameAs(CLEAR_COMPLETED)
+
+        actions.forEach { it(tasksViewModel) }
+
+        assertThat(
+            snackbarObserver.observed()
+                .map { it.peekContent() }
+                .last()
+        ).isEqualTo(R.string.completed_tasks_cleared)
     }
 }
