@@ -136,7 +136,7 @@ class TasksViewModelTestJUnitTheories {
     }
 
     @Theory
-    fun loadingIndicatorAlwaysShownFirst(actions: Actions) {
+    fun dataLoadingAlwaysShownFirst(actions: Actions) {
         actions.forEach { it(tasksViewModel) }
 
         assertThat(
@@ -157,6 +157,7 @@ class TasksViewModelTestJUnitTheories {
         actions.forEach { it(tasksViewModel) }
 
         assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_completed)
+
         assertThat(itemsObserver.observed().last().any { it.isActive }).isFalse()
     }
 
@@ -165,6 +166,7 @@ class TasksViewModelTestJUnitTheories {
         actions.forEach { it(tasksViewModel) }
 
         assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_active)
+
         assertThat(itemsObserver.observed().last().any { it.isCompleted }).isFalse()
     }
 }
