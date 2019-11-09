@@ -155,7 +155,7 @@ class TasksViewModelTestJUnitTheories {
 
         assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_completed)
 
-        assertThat(itemsObserver.observed().last().any { it.isActive }).isFalse()
+        assertThat(itemsObserver.observed().last().none { it.isActive }).isTrue()
     }
 
     @Theory
@@ -164,7 +164,7 @@ class TasksViewModelTestJUnitTheories {
 
         assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_active)
 
-        assertThat(itemsObserver.observed().last().any { it.isCompleted }).isFalse()
+        assertThat(itemsObserver.observed().last().none { it.isCompleted }).isTrue()
     }
 
     @Theory
@@ -173,8 +173,7 @@ class TasksViewModelTestJUnitTheories {
 
         actions.forEach { it(tasksViewModel) }
 
-        assertThat(itemsObserver.observed().last().any { it.isCompleted }).isFalse()
-        assertThat(snackbarObserver.observed().map { it.peekContent() }.last()).isEqualTo(R.string.completed_tasks_cleared)
+        assertThat(itemsObserver.observed().last().none { it.isCompleted }).isTrue()
     }
 
     @Theory
@@ -187,6 +186,8 @@ class TasksViewModelTestJUnitTheories {
             snackbarObserver.observed()
                 .map { it.peekContent() }
                 .last()
-        ).isEqualTo(R.string.completed_tasks_cleared)
+        ).isEqualTo(
+            R.string.completed_tasks_cleared
+        )
     }
 }
