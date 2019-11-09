@@ -114,7 +114,7 @@ class TasksViewModelTestJUnitTheories {
 
     @Theory
     fun dataLoadingAlwaysShownFirst(actions: Actions) {
-        actions.forEach { it(tasksViewModel) }
+        actions.execute()
 
         assertThat(
             dataLoadingObserver
@@ -131,7 +131,7 @@ class TasksViewModelTestJUnitTheories {
 
     @Theory
     fun noActiveItemsWhenSetToFilterComplete(actions: Actions) {
-        actions.forEach { it(tasksViewModel) }
+        actions.execute()
 
         assumeThat(currentFilteringLabel.lastValue()).isEqualTo(R.string.label_completed)
 
@@ -140,7 +140,7 @@ class TasksViewModelTestJUnitTheories {
 
     @Theory
     fun noCompletedItemsWhenSetToFilterActive(actions: Actions) {
-        actions.forEach { it(tasksViewModel) }
+        actions.execute()
 
         assumeThat(currentFilteringLabel.lastValue()).isEqualTo(R.string.label_active)
 
@@ -151,7 +151,7 @@ class TasksViewModelTestJUnitTheories {
     fun noCompletedItemsAfterClearComplete(actions: Actions) {
         assumeThat(actions.last()).isSameAs(CLEAR_COMPLETED)
 
-        actions.forEach { it(tasksViewModel) }
+        actions.execute()
 
         assertThat(itemsObserver.lastValue().none { it.isCompleted }).isTrue()
     }
@@ -160,7 +160,7 @@ class TasksViewModelTestJUnitTheories {
     fun snackbarMessageOnClearComplete(actions: Actions) {
         assumeThat(actions.last()).isSameAs(CLEAR_COMPLETED)
 
-        actions.forEach { it(tasksViewModel) }
+        actions.execute()
 
         assertThat(
             snackbarObserver.observed()
@@ -169,5 +169,9 @@ class TasksViewModelTestJUnitTheories {
         ).isEqualTo(
             R.string.completed_tasks_cleared
         )
+    }
+
+    private fun Actions.execute() {
+        this.forEach { it(tasksViewModel) }
     }
 }
