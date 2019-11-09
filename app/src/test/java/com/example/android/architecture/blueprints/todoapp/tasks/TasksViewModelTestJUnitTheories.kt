@@ -55,16 +55,6 @@ class TasksViewModelTestJUnitTheories {
 
     private val itemsObserver: Observer<List<Task>> = mock()
 
-    private val newTaskEventObserver: Observer<Event<Unit>> = mock()
-
-    private val noTaskIconResObserver: Observer<Int> = mock()
-
-    private val noTasksLabelObserver: Observer<Int> = mock()
-
-    private val openTaskEventObserver: Observer<Event<String>> = mock()
-
-    private val tasksAddViewVisible: Observer<Boolean> = mock()
-
     private val snackbarObserver: Observer<Event<Int>> = mock()
 
     private val currentFilteringLabel: Observer<Int> = mock()
@@ -91,11 +81,6 @@ class TasksViewModelTestJUnitTheories {
 
         tasksViewModel.dataLoading.observeForever(dataLoadingObserver)
         tasksViewModel.items.observeForever(itemsObserver)
-        tasksViewModel.newTaskEvent.observeForever(newTaskEventObserver)
-        tasksViewModel.noTaskIconRes.observeForever(noTaskIconResObserver)
-        tasksViewModel.noTasksLabel.observeForever(noTasksLabelObserver)
-        tasksViewModel.openTaskEvent.observeForever(openTaskEventObserver)
-        tasksViewModel.tasksAddViewVisible.observeForever(tasksAddViewVisible)
         tasksViewModel.snackbarText.observeForever(snackbarObserver)
         tasksViewModel.currentFilteringLabel.observeForever(currentFilteringLabel)
     }
@@ -104,11 +89,6 @@ class TasksViewModelTestJUnitTheories {
     fun tearDown() {
         tasksViewModel.dataLoading.removeObserver(dataLoadingObserver)
         tasksViewModel.items.removeObserver(itemsObserver)
-        tasksViewModel.newTaskEvent.removeObserver(newTaskEventObserver)
-        tasksViewModel.noTaskIconRes.removeObserver(noTaskIconResObserver)
-        tasksViewModel.noTasksLabel.removeObserver(noTasksLabelObserver)
-        tasksViewModel.openTaskEvent.removeObserver(openTaskEventObserver)
-        tasksViewModel.tasksAddViewVisible.observeForever(tasksAddViewVisible)
         tasksViewModel.snackbarText.removeObserver(snackbarObserver)
         tasksViewModel.currentFilteringLabel.removeObserver(currentFilteringLabel)
     }
@@ -142,7 +122,7 @@ class TasksViewModelTestJUnitTheories {
                 .take(3)
         ).isEqualTo(
             listOf(
-                false, // uninitialized
+                false,// uninitialized
                 true, // loading
                 false // loaded
             )
@@ -153,18 +133,18 @@ class TasksViewModelTestJUnitTheories {
     fun noActiveItemsWhenSetToFilterComplete(actions: Actions) {
         actions.forEach { it(tasksViewModel) }
 
-        assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_completed)
+        assumeThat(currentFilteringLabel.lastValue()).isEqualTo(R.string.label_completed)
 
-        assertThat(itemsObserver.observed().last().none { it.isActive }).isTrue()
+        assertThat(itemsObserver.lastValue().none { it.isActive }).isTrue()
     }
 
     @Theory
     fun noCompletedItemsWhenSetToFilterActive(actions: Actions) {
         actions.forEach { it(tasksViewModel) }
 
-        assumeThat(currentFilteringLabel.observed().last()).isEqualTo(R.string.label_active)
+        assumeThat(currentFilteringLabel.lastValue()).isEqualTo(R.string.label_active)
 
-        assertThat(itemsObserver.observed().last().none { it.isCompleted }).isTrue()
+        assertThat(itemsObserver.lastValue().none { it.isCompleted }).isTrue()
     }
 
     @Theory
@@ -173,7 +153,7 @@ class TasksViewModelTestJUnitTheories {
 
         actions.forEach { it(tasksViewModel) }
 
-        assertThat(itemsObserver.observed().last().none { it.isCompleted }).isTrue()
+        assertThat(itemsObserver.lastValue().none { it.isCompleted }).isTrue()
     }
 
     @Theory
@@ -184,7 +164,7 @@ class TasksViewModelTestJUnitTheories {
 
         assertThat(
             snackbarObserver.observed()
-                .map { it.peekContent() }
+                .contents()
                 .last()
         ).isEqualTo(
             R.string.completed_tasks_cleared
