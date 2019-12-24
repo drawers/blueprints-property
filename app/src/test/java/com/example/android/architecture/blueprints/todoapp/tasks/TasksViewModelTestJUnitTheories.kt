@@ -51,8 +51,6 @@ class TasksViewModelTestJUnitTheories {
     // Use a fake repository to be injected into the viewmodel
     private lateinit var tasksRepository: FakeRepository
 
-    private val dataLoadingObserver: Observer<Boolean> = mock()
-
     private val itemsObserver: Observer<List<Task>> = mock()
 
     private val snackbarObserver: Observer<Event<Int>> = mock()
@@ -68,18 +66,16 @@ class TasksViewModelTestJUnitTheories {
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
 
+    private val dataLoadingObserver: Observer<Boolean> = mock()
+
     @Before
     fun setupViewModel() {
-        // We initialise the tasks to 3, with one active and two completed
         tasksRepository = FakeRepository()
-        val task1 = Task("Title1", "Description1")
-        val task2 = Task("Title2", "Description2", true)
-        val task3 = Task("Title3", "Description3", true)
-        tasksRepository.addTasks(task1, task2, task3)
 
         tasksViewModel = TasksViewModel(tasksRepository)
 
         tasksViewModel.dataLoading.observeForever(dataLoadingObserver)
+
         tasksViewModel.items.observeForever(itemsObserver)
         tasksViewModel.snackbarText.observeForever(snackbarObserver)
         tasksViewModel.currentFilteringLabel.observeForever(currentFilteringLabel)
@@ -110,6 +106,11 @@ class TasksViewModelTestJUnitTheories {
             listOf(FILTER_COMPLETE, LOAD, FILTER_ALL, LOAD),
             listOf(FILTER_ALL, LOAD, CLEAR_COMPLETED)
         )
+    }
+
+    @Theory
+    fun propertyThatShouldApply(actions: Actions) {
+
     }
 
     @Theory
