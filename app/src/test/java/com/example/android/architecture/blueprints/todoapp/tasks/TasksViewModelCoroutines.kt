@@ -5,7 +5,6 @@ import androidx.arch.core.executor.TaskExecutor
 import androidx.lifecycle.Observer
 import com.example.android.architecture.blueprints.todoapp.Event
 import com.example.android.architecture.blueprints.todoapp.R
-import com.example.android.architecture.blueprints.todoapp.assertLiveDataEventTriggered
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository
 import com.nhaarman.mockitokotlin2.mock
@@ -16,7 +15,6 @@ import io.kotlintest.extensions.TopLevelTest
 import io.kotlintest.matchers.boolean.shouldBeTrue
 import io.kotlintest.matchers.collections.shouldContainInOrder
 import io.kotlintest.matchers.numerics.shouldBeLessThanOrEqual
-import io.kotlintest.matchers.types.shouldBeInstanceOf
 import io.kotlintest.matchers.types.shouldNotBeNull
 import io.kotlintest.properties.Gen
 import io.kotlintest.properties.PropertyContext
@@ -29,7 +27,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import org.junit.Test
 import java.util.concurrent.Executors
 
 @ExperimentalCoroutinesApi
@@ -56,6 +53,7 @@ class Coroutines : StringSpec() {
 
     private val currentFilteringLabelObserver: Observer<Int> = mock()
 
+    private val taskAddViewVisibleObserver: Observer<Boolean> = mock()
 
     override fun beforeSpecClass(spec: Spec, tests: List<TopLevelTest>) {
         super.beforeSpecClass(spec, tests)
@@ -100,6 +98,7 @@ class Coroutines : StringSpec() {
         tasksViewModel.newTaskEvent.observeForever(addTaskEventObserver)
         tasksViewModel.openTaskEvent.observeForever(openTaskEventObserver)
         tasksViewModel.currentFilteringLabel.observeForever(currentFilteringLabelObserver)
+        tasksViewModel.tasksAddViewVisible.observeForever(taskAddViewVisibleObserver)
     }
 
     override fun afterTest(testCase: TestCase, result: TestResult) {
@@ -109,6 +108,8 @@ class Coroutines : StringSpec() {
         tasksViewModel.snackbarText.removeObserver(snackbarEventObserver)
         tasksViewModel.newTaskEvent.removeObserver(addTaskEventObserver)
         tasksViewModel.openTaskEvent.removeObserver(openTaskEventObserver)
+        tasksViewModel.currentFilteringLabel.removeObserver(currentFilteringLabelObserver)
+        tasksViewModel.tasksAddViewVisible.observeForever(taskAddViewVisibleObserver)
     }
 
     private fun assertAll(block: PropertyContext.() -> Unit) {
@@ -229,7 +230,7 @@ class Coroutines : StringSpec() {
 //                openTaskEventObserver.observed().contents().last().shouldBe("42")
 //            }
 
-        "edit result okay updates snackbar" {
+        "edit okay updates snackbar" {
             assertAll(
                     iterations = 10,
                     gena = Gen.list(
@@ -243,17 +244,69 @@ class Coroutines : StringSpec() {
             }
         }
 
-        "edit result okay updates snackbar" {
+        "add okay updates snackbar" {
             assertAll(
                     iterations = 10,
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + ShowEditResultMessage
+                        it + ShowAddEditResultMessage
                     }
             ) {
                 it.execute()
-                snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_saved_task_message
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_added_task_message
+            }
+        }
+
+        "delete okay updates snackbar" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + ShowDeleteOkMessage
+                    }
+            ) {
+                it.execute()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_deleted_task_message
+            }
+        }
+
+        "mark task complete updates data and snackbar" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + CompleteTask
+                    }
+            ) {
+                it.execute()
+                tasksRepository.tasksServiceData[task.id]!!.isCompleted.shouldBeTrue()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.task_marked_complete
+            }
+        }
+
+        "mark task active updates data and snackbar" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + ActivateTask
+                    }
+            ) {
+                it.execute()
+                tasksRepository.tasksServiceData[task.id]!!.isActive.shouldBeTrue()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.task_marked_active
+            }
+        }
+
+        "add view visible when filter is all tasks" {
+            assertAll {
+                if (currentFilteringLabelObserver.lastValue() == R.string.label_all) {
+                    taskAddViewVisibleObserver.
+                }
             }
         }
     }

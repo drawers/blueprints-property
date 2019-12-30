@@ -69,6 +69,10 @@ internal object OpenTask : Action(
 //)
 
 internal object ShowEditResultMessage : Action({
+    viewModel.showEditResultMessage(EDIT_RESULT_OK)
+})
+
+internal object ShowAddEditResultMessage : Action({
     viewModel.showEditResultMessage(ADD_EDIT_RESULT_OK)
 })
 
