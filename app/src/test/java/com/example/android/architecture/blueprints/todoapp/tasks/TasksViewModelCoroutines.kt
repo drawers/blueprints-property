@@ -5,24 +5,31 @@ import androidx.arch.core.executor.TaskExecutor
 import androidx.lifecycle.Observer
 import com.example.android.architecture.blueprints.todoapp.Event
 import com.example.android.architecture.blueprints.todoapp.R
+import com.example.android.architecture.blueprints.todoapp.assertLiveDataEventTriggered
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository
 import com.nhaarman.mockitokotlin2.mock
-import io.kotlintest.*
+import io.kotlintest.Spec
+import io.kotlintest.TestCase
+import io.kotlintest.TestResult
 import io.kotlintest.extensions.TopLevelTest
 import io.kotlintest.matchers.boolean.shouldBeTrue
 import io.kotlintest.matchers.collections.shouldContainInOrder
 import io.kotlintest.matchers.numerics.shouldBeLessThanOrEqual
+import io.kotlintest.matchers.types.shouldBeInstanceOf
+import io.kotlintest.matchers.types.shouldNotBeNull
 import io.kotlintest.properties.Gen
 import io.kotlintest.properties.PropertyContext
 import io.kotlintest.properties.PropertyTesting
 import io.kotlintest.properties.assertAll
+import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import org.junit.Test
 import java.util.concurrent.Executors
 
 @ExperimentalCoroutinesApi
@@ -165,6 +172,88 @@ class Coroutines : StringSpec() {
                 if (currentFilteringLabelObserver.lastValue() == R.string.label_completed) {
                     itemsObserver.lastValue().none { it.isActive }.shouldBeTrue()
                 }
+            }
+        }
+
+        "load error shows snackbar" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + LoadError
+                    }
+            ) {
+                it.execute()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.loading_tasks_error
+            }
+        }
+
+        "clicking on FAB shows addTaskUI" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + AddNewTask
+                    }
+            ) {
+                it.execute()
+                addTaskEventObserver.observed().contents().last().shouldNotBeNull()
+            }
+        }
+
+        "clicking on open task sends event" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + OpenTask
+                    }
+            ) {
+                it.execute()
+                openTaskEventObserver.observed().contents().last().shouldBe("42")
+            }
+        }
+
+//        "clear completed tasks clears tasks" {
+//            assertAll(
+//                    iterations = 10,
+//                    gena = Gen.list(
+//                            Gen.action()
+//                    ).map {
+//                        it + ClearCompleted
+//                    }
+//            ) {
+//                openTaskEventObserver.observed().contents().last().shouldBe("42")
+//            }
+
+        "edit result okay updates snackbar" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + ShowEditResultMessage
+                    }
+            ) {
+                it.execute()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_saved_task_message
+            }
+        }
+
+        "edit result okay updates snackbar" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + ShowEditResultMessage
+                    }
+            ) {
+                it.execute()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_saved_task_message
             }
         }
     }

@@ -32,6 +32,7 @@ internal sealed class Action(val body: ViewModelContext.() -> Unit) {
         return this::class.simpleName!!
     }
 }
+
 internal object Load : Action({ viewModel.loadTasks(forceUpdate = false) })
 internal object LoadForce : Action({ viewModel.loadTasks(forceUpdate = true) })
 internal object LoadError : Action({
@@ -60,10 +61,11 @@ internal object OpenTask : Action(
 )
 
 
-//internal object ClearCompleted : Action({
-//    viewModel.clearCompletedTasks()
-//    viewModel.loadTasks(true)
-//}
+//internal object ClearCompleted : Action(
+//        {
+//            viewModel.clearCompletedTasks()
+//            viewModel.loadTasks(true)
+//        }
 //)
 
 internal object ShowEditResultMessage : Action({
