@@ -64,30 +64,30 @@ class TasksViewModelTest {
         tasksViewModel = TasksViewModel(tasksRepository)
     }
 
-    @Test
-    fun loadAllTasksFromRepository_loadingTogglesAndDataLoaded() {
-        // Pause dispatcher so we can verify initial values
-        mainCoroutineRule.pauseDispatcher()
+@Test
+fun loadAllTasksFromRepository_loadingTogglesAndDataLoaded() {
+    // Pause dispatcher so we can verify initial values
+    mainCoroutineRule.pauseDispatcher()
 
-        // Given an initialized TasksViewModel with initialized tasks
-        // When loading of Tasks is requested
-        tasksViewModel.setFiltering(TasksFilterType.ALL_TASKS)
+    // Given an initialized TasksViewModel with initialized tasks
+    // When loading of Tasks is requested
+    tasksViewModel.setFiltering(TasksFilterType.ALL_TASKS)
 
-        // Trigger loading of tasks
-        tasksViewModel.loadTasks(true)
+    // Trigger loading of tasks
+    tasksViewModel.loadTasks(true)
 
-        // Then progress indicator is shown
-        assertThat(LiveDataTestUtil.getValue(tasksViewModel.dataLoading)).isTrue()
+    // Then progress indicator is shown
+    assertThat(LiveDataTestUtil.getValue(tasksViewModel.dataLoading)).isTrue()
 
-        // Execute pending coroutines actions
-        mainCoroutineRule.resumeDispatcher()
+    // Execute pending coroutines actions
+    mainCoroutineRule.resumeDispatcher()
 
-        // Then progress indicator is hidden
-        assertThat(LiveDataTestUtil.getValue(tasksViewModel.dataLoading)).isFalse()
+    // Then progress indicator is hidden
+    assertThat(LiveDataTestUtil.getValue(tasksViewModel.dataLoading)).isFalse()
 
-        // And data correctly loaded
-        assertThat(LiveDataTestUtil.getValue(tasksViewModel.items)).hasSize(3)
-    }
+    // And data correctly loaded
+    assertThat(LiveDataTestUtil.getValue(tasksViewModel.items)).hasSize(3)
+}
 
     @Test
     fun loadActiveTasksFromRepositoryAndLoadIntoView() {

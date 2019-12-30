@@ -83,11 +83,11 @@ android {
     }
 }
 
-//android.testOptions {
-//    unitTests.all {
-//        useJUnitPlatform()
-//    }
-//}
+android.testOptions {
+    unitTests.all {
+        useJUnitPlatform()
+    }
+}
 
 /*
  Dependency versions are defined in the top level build.gradle file. This helps keeping track of
@@ -122,6 +122,7 @@ dependencies {
     testImplementation "junit:junit:$junitVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.hamcrest:hamcrest-all:$hamcrestVersion"
+    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.3.2'
     testImplementation "androidx.arch.core:core-testing:$archTestingVersion"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion"
