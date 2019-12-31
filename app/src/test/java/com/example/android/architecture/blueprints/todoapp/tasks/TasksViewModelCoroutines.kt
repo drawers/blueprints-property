@@ -163,7 +163,7 @@ class Coroutines : StringSpec() {
         "no completed items when filter set to active" {
             assertAll {
                 if (currentFilteringLabelObserver.lastValue() == R.string.label_active) {
-                    itemsObserver.lastValue().any { it.isCompleted }.shouldBeTrue()
+                    itemsObserver.lastValue().none { it.isCompleted }.shouldBeTrue()
                 }
             }
         }
@@ -273,12 +273,19 @@ class Coroutines : StringSpec() {
         }
 
         "mark task complete updates data and snackbar" {
+            val task = Task(
+                    title = "Title",
+                    description = "Description",
+                    isCompleted = false
+            )
             assertAll(
                     iterations = 10,
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + CompleteTask
+                        it + CompleteTask(
+                                task
+                        )
                     }
             ) {
                 it.execute()
@@ -288,12 +295,19 @@ class Coroutines : StringSpec() {
         }
 
         "mark task active updates data and snackbar" {
+            val task = Task(
+                    title = "Title",
+                    description = "Description",
+                    isCompleted = true
+            )
             assertAll(
                     iterations = 10,
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + ActivateTask
+                        it + ActivateTask(
+                                task
+                        )
                     }
             ) {
                 it.execute()
@@ -305,7 +319,7 @@ class Coroutines : StringSpec() {
         "add view visible when filter is all tasks" {
             assertAll {
                 if (currentFilteringLabelObserver.lastValue() == R.string.label_all) {
-                    taskAddViewVisibleObserver.
+                    taskAddViewVisibleObserver.lastValue().shouldBeTrue()
                 }
             }
         }

@@ -9,7 +9,7 @@ import kotlin.random.Random
 internal fun Gen.Companion.action(): Gen<Action> = object : Gen<Action> {
 
     override fun constants(): Iterable<Action> = Action::class.sealedSubclasses.map {
-        it.objectInstance!!
+        it.objectInstance ?: Load
     }
 
     override fun random(): Sequence<Action> = generateSequence {
@@ -80,11 +80,7 @@ internal object ShowDeleteOkMessage : Action({
     viewModel.showEditResultMessage(DELETE_RESULT_OK)
 })
 
-internal object CompleteTask : Action({
-    val task = Task(
-            title = "Title",
-            description = "Description"
-    )
+internal class CompleteTask(val task: Task) : Action({
     repo.addTasks(
             task
     )
@@ -94,12 +90,7 @@ internal object CompleteTask : Action({
     )
 })
 
-internal object ActivateTask : Action({
-    val task = Task(
-            title = "Title",
-            description = "Description",
-            isCompleted = true
-    )
+internal class ActivateTask(val task: Task) : Action({
     repo.addTasks(task)
     viewModel.completeTask(task = task, completed = false)
 })
