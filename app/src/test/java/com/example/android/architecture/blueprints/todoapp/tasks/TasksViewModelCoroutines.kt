@@ -24,22 +24,21 @@ import io.kotlintest.shouldBe
 import io.kotlintest.specs.StringSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import java.util.concurrent.Executors
 
 @ExperimentalCoroutinesApi
 class Coroutines : StringSpec() {
 
-    private val executor = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val executor = TestCoroutineDispatcher()
 
     private lateinit var tasksViewModel: TasksViewModel
 
     // Use a fake repository to be injected into the viewmodel
     private lateinit var tasksRepository: FakeRepository
 
-    private lateinit var viewModelContext: ViewModelContext
+    private lateinit var tasksContext: TasksContext
 
     private val dataLoadingObserver: Observer<Boolean> = mock()
 
@@ -83,14 +82,15 @@ class Coroutines : StringSpec() {
 
     override fun beforeTest(testCase: TestCase) {
         super.beforeTest(testCase)
-        println("beforeTest: ${testCase.description}")
+
         tasksRepository = FakeRepository()
         val task1 = Task("Title1", "Description1")
         val task2 = Task("Title2", "Description2", true)
         val task3 = Task("Title3", "Description3", true)
         tasksRepository.addTasks(task1, task2, task3)
         tasksViewModel = TasksViewModel(tasksRepository)
-        viewModelContext = ViewModelContext(tasksViewModel, tasksRepository)
+        tasksContext = TasksContext(tasksViewModel, tasksRepository)
+
 
         tasksViewModel.dataLoading.observeForever(dataLoadingObserver)
         tasksViewModel.items.observeForever((itemsObserver))
@@ -114,7 +114,10 @@ class Coroutines : StringSpec() {
 
     private fun assertAll(block: PropertyContext.() -> Unit) {
         assertAll(10, Gen.list(Gen.action())) { actions ->
-            actions.execute()
+            actions.forEach {
+                it.body(tasksContext)
+            }
+
             apply {
                 block()
             }
@@ -124,7 +127,32 @@ class Coroutines : StringSpec() {
     init {
         "dataLoading off after loaded" {
             assertAll {
-                dataLoadingObserver.observed().take(3).shouldContainInOrder(listOf(true, false, true))
+                dataLoadingObserver.observed().take(3).shouldContainInOrder(
+                        listOf(
+                                false, // uninitiliazed
+                                true, // loading
+                                false // loaded
+                        )
+                )
+            }
+        }
+
+        "f:no completed items when filter set to active" {
+            assertAll {
+                if (currentFilteringLabelObserver.lastValue() == R.string.label_active) {
+                    println()
+                    println(itemsObserver.observed())
+                    println()
+                    itemsObserver.lastValue().none { it.isCompleted }.shouldBeTrue()
+                }
+            }
+        }
+
+        "no active items when filter set to complete" {
+            assertAll {
+                if (currentFilteringLabelObserver.lastValue() == R.string.label_completed) {
+                    itemsObserver.lastValue().none { it.isActive }.shouldBeTrue()
+                }
             }
         }
 
@@ -156,22 +184,6 @@ class Coroutines : StringSpec() {
                 itemsObserver.observed().last().forEach {
                     it.isActive shouldBe tasksRepository.tasksServiceData[it.id]!!.isActive
                     it.isCompleted shouldBe tasksRepository.tasksServiceData[it.id]!!.isCompleted
-                }
-            }
-        }
-
-        "no completed items when filter set to active" {
-            assertAll {
-                if (currentFilteringLabelObserver.lastValue() == R.string.label_active) {
-                    itemsObserver.lastValue().none { it.isCompleted }.shouldBeTrue()
-                }
-            }
-        }
-
-        "no active items when filter set to complete" {
-            assertAll {
-                if (currentFilteringLabelObserver.lastValue() == R.string.label_completed) {
-                    itemsObserver.lastValue().none { it.isActive }.shouldBeTrue()
                 }
             }
         }
@@ -218,17 +230,18 @@ class Coroutines : StringSpec() {
             }
         }
 
-//        "clear completed tasks clears tasks" {
-//            assertAll(
-//                    iterations = 10,
-//                    gena = Gen.list(
-//                            Gen.action()
-//                    ).map {
-//                        it + ClearCompleted
-//                    }
-//            ) {
-//                openTaskEventObserver.observed().contents().last().shouldBe("42")
-//            }
+        "clear completed tasks clears tasks" {
+            assertAll(
+                    iterations = 10,
+                    gena = Gen.list(
+                            Gen.action()
+                    ).map {
+                        it + ClearCompleted
+                    }
+            ) {
+                openTaskEventObserver.observed().contents().last().shouldBe("42")
+            }
+        }
 
         "edit okay updates snackbar" {
             assertAll(
@@ -250,7 +263,7 @@ class Coroutines : StringSpec() {
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + ShowAddEditResultMessage
+                        it + Load + ShowAddEditResultMessage
                     }
             ) {
                 it.execute()
@@ -264,7 +277,7 @@ class Coroutines : StringSpec() {
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + ShowDeleteOkMessage
+                        it + Load + ShowDeleteOkMessage
                     }
             ) {
                 it.execute()
@@ -273,45 +286,33 @@ class Coroutines : StringSpec() {
         }
 
         "mark task complete updates data and snackbar" {
-            val task = Task(
-                    title = "Title",
-                    description = "Description",
-                    isCompleted = false
-            )
             assertAll(
                     iterations = 10,
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + CompleteTask(
-                                task
-                        )
+                        it + Load + CompleteTask
                     }
             ) {
+                println(it)
                 it.execute()
-                tasksRepository.tasksServiceData[task.id]!!.isCompleted.shouldBeTrue()
+                println(tasksRepository.tasksServiceData)
+                tasksRepository.tasksServiceData[SAMPLE_TASK.id]!!.isCompleted.shouldBeTrue()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.task_marked_complete
             }
         }
 
         "mark task active updates data and snackbar" {
-            val task = Task(
-                    title = "Title",
-                    description = "Description",
-                    isCompleted = true
-            )
             assertAll(
                     iterations = 10,
                     gena = Gen.list(
                             Gen.action()
                     ).map {
-                        it + ActivateTask(
-                                task
-                        )
+                        it + Load + ActivateTask
                     }
             ) {
                 it.execute()
-                tasksRepository.tasksServiceData[task.id]!!.isActive.shouldBeTrue()
+                tasksRepository.tasksServiceData[SAMPLE_TASK_COMPLETE.id]!!.isActive.shouldBeTrue()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.task_marked_active
             }
         }
@@ -327,7 +328,7 @@ class Coroutines : StringSpec() {
 
     private fun List<Action>.execute() {
         forEach {
-            it.body.invoke(viewModelContext)
+            it.body.invoke(tasksContext)
         }
     }
 }

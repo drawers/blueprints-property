@@ -3,44 +3,56 @@ package com.example.android.architecture.blueprints.todoapp.tasks
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository
 import io.kotlintest.properties.Gen
-import io.kotlintest.properties.shrinking.ListShrinker
 import kotlin.random.Random
 
-internal fun Gen.Companion.action(): Gen<Action> = object : Gen<Action> {
+internal class TasksContext(
+        val viewModel: TasksViewModel,
+        val repo: FakeRepository
+)
 
-    override fun constants(): Iterable<Action> = Action::class.sealedSubclasses.map {
-        it.objectInstance ?: Load
-    }
-
-    override fun random(): Sequence<Action> = generateSequence {
-        constants().drop(Random.nextInt(constants().count())).first()
-    }
-}
-
-internal fun <T> Gen.Companion.smallList(gen: Gen<T>, int: Int): Gen<List<T>> = object : Gen<List<T>> {
-    override fun constants(): Iterable<List<T>> = listOf(gen.constants().toList())
-    override fun random(): Sequence<List<T>> = generateSequence {
-        val size = Random.nextInt(int)
-        gen.random().take(size).toList()
-    }
-
-    override fun shrinker() = ListShrinker<T>()
-}
-
-internal sealed class Action(val body: ViewModelContext.() -> Unit) {
+internal sealed class Action(val body: TasksContext.() -> Unit) {
     override fun toString(): String {
         return this::class.simpleName!!
     }
 }
 
-internal object Load : Action({ viewModel.loadTasks(forceUpdate = false) })
-internal object LoadForce : Action({ viewModel.loadTasks(forceUpdate = true) })
+internal fun Gen.Companion.action(): Gen<Action> = object : Gen<Action> {
+
+    override fun constants(): Iterable<Action> = Action::class.sealedSubclasses.map {
+        it.objectInstance!!
+    }
+
+    override fun random(): Sequence<Action> = constants().shuffled().asSequence()
+}
+
+internal val SAMPLE_TASK = Task(
+        title = "Sample title",
+        description = "Sample description",
+        isCompleted = false
+)
+
+internal val SAMPLE_TASK_COMPLETE = Task(
+        title = "Sample title - complete",
+        description = "Sample description - complete",
+        isCompleted = false
+)
+
+internal object Load : Action({
+    viewModel.loadTasks(forceUpdate = false)
+})
+
+internal object LoadForce : Action({
+    viewModel.loadTasks(forceUpdate = true)
+})
+
 internal object LoadError : Action({
     repo.setReturnError(true)
     viewModel.loadTasks(true)
+    repo.setReturnError(false)
 })
 
 internal object FilterActiveTasks : Action({
+    viewModel.loadTasks(true)
     viewModel.setFiltering(TasksFilterType.ACTIVE_TASKS)
 })
 
@@ -60,42 +72,42 @@ internal object OpenTask : Action(
         { viewModel.openTask("42") }
 )
 
+internal object ClearCompleted : Action(
+        {
+            viewModel.clearCompletedTasks()
+            viewModel.loadTasks(true)
+        }
+)
 
-//internal object ClearCompleted : Action(
-//        {
-//            viewModel.clearCompletedTasks()
-//            viewModel.loadTasks(true)
-//        }
-//)
+internal object ShowEditResultMessage : Action(
+        {
+            viewModel.showEditResultMessage(EDIT_RESULT_OK)
+        }
+)
 
-internal object ShowEditResultMessage : Action({
-    viewModel.showEditResultMessage(EDIT_RESULT_OK)
-})
+internal object ShowAddEditResultMessage : Action(
+        {
+            viewModel.showEditResultMessage(ADD_EDIT_RESULT_OK)
+        }
+)
 
-internal object ShowAddEditResultMessage : Action({
-    viewModel.showEditResultMessage(ADD_EDIT_RESULT_OK)
-})
+internal object ShowDeleteOkMessage : Action(
+        {
+            viewModel.showEditResultMessage(DELETE_RESULT_OK)
+        }
+)
 
-internal object ShowDeleteOkMessage : Action({
-    viewModel.showEditResultMessage(DELETE_RESULT_OK)
-})
-
-internal class CompleteTask(val task: Task) : Action({
+internal object CompleteTask : Action({
     repo.addTasks(
-            task
+            SAMPLE_TASK
     )
     viewModel.completeTask(
-            task = task,
+            task = SAMPLE_TASK,
             completed = true
     )
 })
 
-internal class ActivateTask(val task: Task) : Action({
-    repo.addTasks(task)
-    viewModel.completeTask(task = task, completed = false)
+internal object ActivateTask : Action({
+    repo.addTasks(SAMPLE_TASK_COMPLETE)
+    viewModel.completeTask(task = SAMPLE_TASK_COMPLETE, completed = false)
 })
-
-internal class ViewModelContext(
-        val viewModel: TasksViewModel,
-        val repo: FakeRepository
-)

@@ -22,30 +22,17 @@ import androidx.lifecycle.Observer
 import com.example.android.architecture.blueprints.todoapp.Event
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository
-import com.example.android.architecture.blueprints.todoapp.tasks.TasksFilterType.ACTIVE_TASKS
-import com.example.android.architecture.blueprints.todoapp.tasks.TasksFilterType.COMPLETED_TASKS
 import com.nhaarman.mockitokotlin2.mock
 import io.kotlintest.*
-import io.kotlintest.extensions.SpecLevelExtension
 import io.kotlintest.extensions.TopLevelTest
-import io.kotlintest.matchers.boolean.shouldBeFalse
-import io.kotlintest.matchers.boolean.shouldBeTrue
-import io.kotlintest.matchers.collections.shouldContainInOrder
-import io.kotlintest.properties.Gen
 import io.kotlintest.properties.PropertyTesting
-import io.kotlintest.properties.assertAll
-import io.kotlintest.properties.filterIsInstance
 import io.kotlintest.specs.StringSpec
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import java.util.concurrent.Executors
-import kotlin.coroutines.ContinuationInterceptor
-import kotlin.random.Random
 
 /**
  * Unit tests for the implementation of [TasksViewModel]
@@ -73,7 +60,7 @@ class TasksViewModelTestKotlinTest : StringSpec() {
     // Use a fake repository to be injected into the viewmodel
     private lateinit var tasksRepository: FakeRepository
 
-    private lateinit var viewModelContext: ViewModelContext
+    private lateinit var tasksContext: TasksContext
 
     override fun beforeSpecClass(spec: Spec, tests: List<TopLevelTest>) {
         super.beforeSpecClass(spec, tests)
@@ -111,7 +98,7 @@ class TasksViewModelTestKotlinTest : StringSpec() {
         val task3 = Task("Title3", "Description3", true)
         tasksRepository.addTasks(task1, task2, task3)
         tasksViewModel = TasksViewModel(tasksRepository)
-        viewModelContext = ViewModelContext(tasksViewModel, tasksRepository)
+        tasksContext = TasksContext(tasksViewModel, tasksRepository)
 
         tasksViewModel.dataLoading.observeForever(dataLoadingObserver)
         tasksViewModel.items.observeForever((itemsObserver))

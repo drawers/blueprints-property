@@ -20,6 +20,8 @@ import com.example.android.architecture.blueprints.todoapp.data.Result
 import com.example.android.architecture.blueprints.todoapp.data.Result.Error
 import com.example.android.architecture.blueprints.todoapp.data.Result.Success
 import com.example.android.architecture.blueprints.todoapp.data.Task
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.util.LinkedHashMap
 
 /**
@@ -32,33 +34,43 @@ class FakeRepository : TasksRepository {
     private var shouldReturnError = false
 
     fun setReturnError(value: Boolean) {
-        shouldReturnError = value
+        synchronized(this) {
+            shouldReturnError = value
+        }
     }
 
     override suspend fun getTask(taskId: String, forceUpdate: Boolean): Result<Task> {
-        if (shouldReturnError) {
-            return Error(Exception("Test exception"))
+        synchronized(this) {
+            if (shouldReturnError) {
+                return Error(Exception("Test exception"))
+            }
+            tasksServiceData[taskId]?.let {
+                return Success(it)
+            }
+            return Error(Exception("Could not find task"))
         }
-        tasksServiceData[taskId]?.let {
-            return Success(it)
-        }
-        return Error(Exception("Could not find task"))
     }
 
     override suspend fun getTasks(forceUpdate: Boolean): Result<List<Task>> {
-        if (shouldReturnError) {
-            return Error(Exception("Test exception"))
+        synchronized(this) {
+            if (shouldReturnError) {
+                return Error(Exception("Test exception"))
+            }
+            return Success(tasksServiceData.values.toList())
         }
-        return Success(tasksServiceData.values.toList())
     }
 
     override suspend fun saveTask(task: Task) {
-        tasksServiceData[task.id] = task
+        synchronized(this) {
+            tasksServiceData[task.id] = task
+        }
     }
 
     override suspend fun completeTask(task: Task) {
-        val completedTask = Task(task.title, task.description, true, task.id)
-        tasksServiceData[task.id] = completedTask
+        synchronized(this) {
+            val completedTask = Task(task.title, task.description, true, task.id)
+            tasksServiceData[task.id] = completedTask
+        }
     }
 
     override suspend fun completeTask(taskId: String) {
@@ -67,8 +79,10 @@ class FakeRepository : TasksRepository {
     }
 
     override suspend fun activateTask(task: Task) {
-        val activeTask = Task(task.title, task.description, false, task.id)
-        tasksServiceData[task.id] = activeTask
+        synchronized(this) {
+            val activeTask = Task(task.title, task.description, false, task.id)
+            tasksServiceData[task.id] = activeTask
+        }
     }
 
     override suspend fun activateTask(taskId: String) {
@@ -76,23 +90,31 @@ class FakeRepository : TasksRepository {
     }
 
     override suspend fun clearCompletedTasks() {
-        tasksServiceData = tasksServiceData.filterValues {
-            !it.isCompleted
-        } as LinkedHashMap<String, Task>
+        synchronized(this) {
+            tasksServiceData = tasksServiceData.filterValues {
+                !it.isCompleted
+            } as LinkedHashMap<String, Task>
+        }
     }
 
     override suspend fun deleteTask(taskId: String) {
-        tasksServiceData.remove(taskId)
+        synchronized(this) {
+            tasksServiceData.remove(taskId)
+        }
     }
 
     override suspend fun deleteAllTasks() {
-        tasksServiceData.clear()
+        synchronized(this) {
+            tasksServiceData.clear()
+        }
     }
 
     @VisibleForTesting
     fun addTasks(vararg tasks: Task) {
-        for (task in tasks) {
-            tasksServiceData[task.id] = task
+        synchronized(this) {
+            for (task in tasks) {
+                tasksServiceData[task.id] = task
+            }
         }
     }
 }
