@@ -30,7 +30,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 
 @ExperimentalCoroutinesApi
-class Coroutines : StringSpec() {
+class TasksViewModelTest : StringSpec() {
 
     private lateinit var tasksViewModel: TasksViewModel
 
