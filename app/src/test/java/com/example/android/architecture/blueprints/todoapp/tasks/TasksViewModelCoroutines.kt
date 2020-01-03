@@ -12,6 +12,7 @@ import io.kotlintest.Spec
 import io.kotlintest.TestCase
 import io.kotlintest.TestResult
 import io.kotlintest.extensions.TopLevelTest
+import io.kotlintest.matchers.boolean.shouldBeFalse
 import io.kotlintest.matchers.boolean.shouldBeTrue
 import io.kotlintest.matchers.collections.shouldContainInOrder
 import io.kotlintest.matchers.numerics.shouldBeLessThanOrEqual
@@ -31,11 +32,8 @@ import kotlinx.coroutines.test.setMain
 @ExperimentalCoroutinesApi
 class Coroutines : StringSpec() {
 
-    private val executor = TestCoroutineDispatcher()
-
     private lateinit var tasksViewModel: TasksViewModel
 
-    // Use a fake repository to be injected into the viewmodel
     private lateinit var tasksRepository: FakeRepository
 
     private lateinit var tasksContext: TasksContext
@@ -57,7 +55,7 @@ class Coroutines : StringSpec() {
     override fun beforeSpecClass(spec: Spec, tests: List<TopLevelTest>) {
         super.beforeSpecClass(spec, tests)
         PropertyTesting.shouldPrintGeneratedValues = true
-        Dispatchers.setMain(executor)
+        Dispatchers.setMain(TestCoroutineDispatcher())
         ArchTaskExecutor.getInstance().setDelegate(object : TaskExecutor() {
             override fun executeOnDiskIO(runnable: Runnable) {
                 runnable.run()
@@ -112,24 +110,12 @@ class Coroutines : StringSpec() {
         tasksViewModel.tasksAddViewVisible.observeForever(taskAddViewVisibleObserver)
     }
 
-    private fun assertAll(block: PropertyContext.() -> Unit) {
-        assertAll(10, Gen.list(Gen.action())) { actions ->
-            actions.forEach {
-                it.body(tasksContext)
-            }
-
-            apply {
-                block()
-            }
-        }
-    }
-
     init {
         "dataLoading off after loaded" {
             assertAll {
                 dataLoadingObserver.observed().take(3).shouldContainInOrder(
                         listOf(
-                                false, // uninitiliazed
+                                false, // uninitialized
                                 true, // loading
                                 false // loaded
                         )
@@ -137,12 +123,9 @@ class Coroutines : StringSpec() {
             }
         }
 
-        "f:no completed items when filter set to active" {
+        "no completed items when filter set to active" {
             assertAll {
                 if (currentFilteringLabelObserver.lastValue() == R.string.label_active) {
-                    println()
-                    println(itemsObserver.observed())
-                    println()
                     itemsObserver.lastValue().none { it.isCompleted }.shouldBeTrue()
                 }
             }
@@ -163,155 +146,121 @@ class Coroutines : StringSpec() {
         }
 
 
-        "item titles match those in repository" {
+        "items mapped correctly from those in repository" {
             assertAll {
                 itemsObserver.observed().last().forEach {
-                    it.title shouldBe tasksRepository.tasksServiceData[it.id]!!.title
-                }
-            }
-        }
+                    val task = tasksRepository.tasksServiceData[it.id]!!
 
-        "item descriptions match those in repository" {
-            assertAll {
-                itemsObserver.observed().last().forEach {
-                    it.description shouldBe tasksRepository.tasksServiceData[it.id]!!.description
-                }
-            }
-        }
-
-        "item status match those in repository" {
-            assertAll {
-                itemsObserver.observed().last().forEach {
-                    it.isActive shouldBe tasksRepository.tasksServiceData[it.id]!!.isActive
-                    it.isCompleted shouldBe tasksRepository.tasksServiceData[it.id]!!.isCompleted
+                    it.title shouldBe task.title
+                    it.description shouldBe task.description
+                    it.isActive shouldBe task.isActive
+                    it.isCompleted shouldBe task.isCompleted
                 }
             }
         }
 
         "load error shows snackbar" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + LoadError
-                    }
+                    listOf(
+                            LoadError
+                    ),
+                    listOf(
+                            Load,
+                            AddNewTask,
+                            LoadError
+                    )
             ) {
-                it.execute()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.loading_tasks_error
             }
         }
 
         "clicking on FAB shows addTaskUI" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + AddNewTask
-                    }
+                    listOf(
+                            Load,
+                            AddNewTask
+                    )
             ) {
-                it.execute()
                 addTaskEventObserver.observed().contents().last().shouldNotBeNull()
             }
         }
 
         "clicking on open task sends event" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + OpenTask
-                    }
+                    listOf(
+                            Load,
+                            OpenTask
+                    )
             ) {
-                it.execute()
-                openTaskEventObserver.observed().contents().last().shouldBe("42")
+                openTaskEventObserver.observed().contents().last().shouldBe(OpenTask.OPEN_TASK_ID)
             }
         }
 
         "clear completed tasks clears tasks" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + ClearCompleted
-                    }
+                    listOf(
+                            Load,
+                            ClearCompleted
+                    )
             ) {
-                openTaskEventObserver.observed().contents().last().shouldBe("42")
+                itemsObserver.observed().last().any { it.isCompleted }.shouldBeFalse()
+                snackbarEventObserver.observed().contents().last() shouldBe R.string.completed_tasks_cleared
             }
         }
 
         "edit okay updates snackbar" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + ShowEditResultMessage
-                    }
+                    listOf(
+                            Load,
+                            ShowEditResultMessage
+                    )
             ) {
-                it.execute()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_saved_task_message
             }
         }
 
         "add okay updates snackbar" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + Load + ShowAddEditResultMessage
-                    }
+                    listOf(
+                            Load,
+                            ShowAddEditResultMessage
+                    )
             ) {
-                it.execute()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_added_task_message
             }
         }
 
+
         "delete okay updates snackbar" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + Load + ShowDeleteOkMessage
-                    }
+                    listOf(
+                            Load,
+                            ShowDeleteOkMessage
+                    )
             ) {
-                it.execute()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.successfully_deleted_task_message
             }
         }
 
         "mark task complete updates data and snackbar" {
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + Load + CompleteTask
-                    }
+                    listOf(
+                            Load,
+                            CompleteTask
+                    )
             ) {
-                println(it)
-                it.execute()
-                println(tasksRepository.tasksServiceData)
                 tasksRepository.tasksServiceData[SAMPLE_TASK.id]!!.isCompleted.shouldBeTrue()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.task_marked_complete
             }
         }
 
-        "mark task active updates data and snackbar" {
+        "mark task active updates data and snackbar"{
             assertAll(
-                    iterations = 10,
-                    gena = Gen.list(
-                            Gen.action()
-                    ).map {
-                        it + Load + ActivateTask
-                    }
+                    listOf(
+                            Load,
+                            ActivateTask
+                    )
             ) {
-                it.execute()
                 tasksRepository.tasksServiceData[SAMPLE_TASK_COMPLETE.id]!!.isActive.shouldBeTrue()
                 snackbarEventObserver.observed().contents().last() shouldBe R.string.task_marked_active
             }
@@ -326,9 +275,32 @@ class Coroutines : StringSpec() {
         }
     }
 
-    private fun List<Action>.execute() {
-        forEach {
-            it.body.invoke(tasksContext)
+    private fun assertAll(vararg actions: List<Action>, block: PropertyContext.() -> Unit) {
+        assertAll(iterations = 1, gena = Gen.from(actions)) { genActions ->
+            genActions.forEach {
+                it.body(tasksContext)
+            }
+
+            genActions.apply {
+                block()
+            }
+        }
+    }
+
+
+    private fun assertAll(block: PropertyContext.() -> Unit) {
+        assertAll(
+                iterations = 10,
+                gena = Gen.list(Gen.action())
+        )
+        { actions ->
+            actions.forEach {
+                it.body(tasksContext)
+            }
+
+            apply {
+                block()
+            }
         }
     }
 }

@@ -2,8 +2,8 @@ package com.example.android.architecture.blueprints.todoapp.tasks
 
 import com.example.android.architecture.blueprints.todoapp.data.Task
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository
+import com.example.android.architecture.blueprints.todoapp.tasks.OpenTask.OPEN_TASK_ID
 import io.kotlintest.properties.Gen
-import kotlin.random.Random
 
 internal class TasksContext(
         val viewModel: TasksViewModel,
@@ -24,6 +24,16 @@ internal fun Gen.Companion.action(): Gen<Action> = object : Gen<Action> {
 
     override fun random(): Sequence<Action> = constants().shuffled().asSequence()
 }
+
+internal fun Gen.Companion.actions(): Gen<List<Action>> = object : Gen<List<Action>> {
+
+    override fun constants(): Iterable<List<Action>> = Action::class.sealedSubclasses.map {
+        listOf(LoadForce, it.objectInstance!!, Load)
+    }
+
+    override fun random(): Sequence<List<Action>> = constants().shuffled().asSequence()
+}
+
 
 internal val SAMPLE_TASK = Task(
         title = "Sample title",
@@ -54,14 +64,17 @@ internal object LoadError : Action({
 internal object FilterActiveTasks : Action({
     viewModel.loadTasks(true)
     viewModel.setFiltering(TasksFilterType.ACTIVE_TASKS)
+    viewModel.loadTasks(false)
 })
 
 internal object FilterCompletedTasks : Action({
     viewModel.setFiltering(TasksFilterType.COMPLETED_TASKS)
+    viewModel.loadTasks(false)
 })
 
 internal object FilterAllTasks : Action({
     viewModel.setFiltering(TasksFilterType.COMPLETED_TASKS)
+    viewModel.loadTasks(false)
 })
 
 internal object AddNewTask : Action(
@@ -69,15 +82,19 @@ internal object AddNewTask : Action(
 )
 
 internal object OpenTask : Action(
-        { viewModel.openTask("42") }
-)
+        { viewModel.openTask(OPEN_TASK_ID) }
+) {
+    val OPEN_TASK_ID = "42"
+}
 
 internal object ClearCompleted : Action(
         {
             viewModel.clearCompletedTasks()
             viewModel.loadTasks(true)
         }
-)
+) {
+
+}
 
 internal object ShowEditResultMessage : Action(
         {
