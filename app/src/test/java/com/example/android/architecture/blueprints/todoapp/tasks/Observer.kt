@@ -25,7 +25,7 @@ import com.nhaarman.mockitokotlin2.verify
  *  viewStateObserver.observed().last() shouldEqual Puppies()
  * }
  * ```
- * @param T the type parameter of the [Observer] e.g., a Scaffold ViewState or ViewEvent
+ * @param T the type parameter of the [Observer]
  *
  */
 inline fun <reified T : Any> Observer<T>.observed(): List<T> {
